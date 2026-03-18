@@ -337,6 +337,101 @@
       border-radius: 2px;
       flex-shrink: 0;
     }
+
+    /* ---- Scenario comparison ---- */
+
+    .comparison-bar {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #333;
+      border: 1px solid #d1d5db;
+    }
+    .btn-secondary:hover { background: #e5e7eb; }
+
+    .comparison-layout {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .comparison-column {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .comparison-column-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .comparison-column-title.baseline { color: #6b7280; border-color: #6b7280; }
+    .comparison-column-title.current { color: #2563eb; border-color: #2563eb; }
+
+    .delta-section {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #f9fafb;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .delta-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.75rem;
+    }
+
+    .delta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 0.35rem 0;
+      font-size: 0.85rem;
+    }
+
+    .delta-label { color: #666; }
+
+    .delta-value {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .delta-improved { color: #16a34a; }
+    .delta-worsened { color: #dc2626; }
+    .delta-neutral { color: #6b7280; }
+
+    .gauge-svg-sm {
+      width: 140px;
+      height: 85px;
+    }
+
+    .gauge-pct-sm {
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-anchor: middle;
+    }
+
+    .gauge-container-sm {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
   </style>
 </head>
 <body>
@@ -356,6 +451,10 @@
       <div class="task-list" id="task-list">
         <div class="task-list-empty">Select a model above to get started.</div>
       </div>
+      <div class="comparison-bar" id="comparison-bar" style="display: none">
+        <button class="btn btn-primary" id="btn-save-baseline">Save as Baseline</button>
+        <button class="btn btn-secondary" id="btn-clear-baseline" style="display: none">Clear Baseline</button>
+      </div>
     </div>
 
     <div class="results-panel">
@@ -374,6 +473,8 @@
   let selectedModel = null;
   let tasks = [];
   let taskCounter = 0;
+  let baseline = null;       // { tasks: [...], result: {...} } or null
+  let currentResult = null;  // latest assessment result
 
   // ---- Example tasks per model ----
   const EXAMPLES = {
@@ -404,7 +505,8 @@
 
   async function fetchAssessment() {
     if (!selectedModel || tasks.length === 0) {
-      renderResults(null);
+      currentResult = null;
+      renderResultsPanel();
       return;
     }
 
@@ -418,12 +520,13 @@
     });
 
     if (!res.ok) {
-      renderResults(null);
+      currentResult = null;
+      renderResultsPanel();
       return;
     }
 
-    const data = await res.json();
-    renderResults(data);
+    currentResult = await res.json();
+    renderResultsPanel();
   }
 
   // ---- Model cards ----
@@ -442,6 +545,8 @@
 
   function selectModel(model) {
     selectedModel = model;
+    baseline = null;
+    currentResult = null;
     const examples = EXAMPLES[model.id] || [];
     tasks = examples.map(e => ({ name: e.name, params: { ...e.params } }));
     taskCounter = tasks.length;
@@ -452,6 +557,7 @@
 
     renderForm();
     renderTaskList();
+    updateComparisonBar();
     fetchAssessment();
   }
 
@@ -669,13 +775,10 @@
     `;
   }
 
-  // ---- Results ----
-  function renderResults(data) {
-    const container = document.getElementById("results");
-
+  // ---- Single-scenario results ----
+  function renderSingleResult(data) {
     if (!data || data.tasks.length === 0) {
-      container.innerHTML = `<div class="results-empty">Add tasks to see results.</div>`;
-      return;
+      return `<div class="results-empty">Add tasks to see results.</div>`;
     }
 
     const pct = data.probability * 100;
@@ -712,8 +815,157 @@
     });
 
     html += `</div>`;
+    return html;
+  }
+
+  // ---- Compact result for comparison columns ----
+  function renderCompactResult(data, label) {
+    if (!data || data.tasks.length === 0) {
+      return `<div class="results-empty">No data.</div>`;
+    }
+
+    const pct = data.probability * 100;
+    const cx = 70, cy = 65, r = 48;
+    const circumference = Math.PI * r;
+    const clampedPct = Math.min(Math.max(pct, 0), 100);
+    const offset = circumference * (1 - clampedPct / 100);
+    const color = riskColor(pct);
+    const rClass = pct < 25 ? "risk-green" : pct < 50 ? "risk-yellow" : "risk-red";
+
+    let html = `
+      <div class="gauge-container-sm">
+        <svg class="gauge-svg-sm" viewBox="0 0 140 85">
+          <path fill="none" stroke="#e5e7eb" stroke-width="14" stroke-linecap="round"
+                d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}" />
+          <path fill="none" stroke="${color}" stroke-width="14" stroke-linecap="round"
+                d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}"
+                stroke-dasharray="${circumference}"
+                stroke-dashoffset="${offset}" />
+          <text class="gauge-pct-sm ${rClass}" x="${cx}" y="${cy - 8}">${pct.toFixed(1)}%</text>
+          <text class="gauge-risk-label" x="${cx}" y="${cy + 6}">${riskLabel(pct)}</text>
+        </svg>
+      </div>
+      <div style="margin-bottom:0.5rem">
+        <div class="result-label">Cumulative Damage</div>
+        <div style="font-size:1.1rem;font-weight:600">${data.cumulative_damage.toFixed(6)}</div>
+      </div>
+    `;
+
+    // Compact task list
+    data.tasks.forEach((t, i) => {
+      const color = TASK_COLORS[i % TASK_COLORS.length];
+      html += `
+        <div style="display:flex;justify-content:space-between;font-size:0.78rem;padding:0.15rem 0">
+          <span style="display:flex;align-items:center;gap:0.3rem">
+            <span style="width:8px;height:8px;border-radius:2px;background:${color};display:inline-block"></span>
+            ${t.name}
+          </span>
+          <span style="color:#666">${t.pct_total.toFixed(1)}%</span>
+        </div>
+      `;
+    });
+
+    return html;
+  }
+
+  // ---- Delta display ----
+  function renderDelta(baselineData, currentData) {
+    const bCD = baselineData.cumulative_damage;
+    const cCD = currentData.cumulative_damage;
+    const bP = baselineData.probability * 100;
+    const cP = currentData.probability * 100;
+
+    const cdDiff = cCD - bCD;
+    const cdPctChange = bCD > 0 ? ((cCD - bCD) / bCD) * 100 : 0;
+    const pDiff = cP - bP;
+
+    const cdClass = cdDiff < -0.000001 ? "delta-improved" : cdDiff > 0.000001 ? "delta-worsened" : "delta-neutral";
+    const pClass = pDiff < -0.05 ? "delta-improved" : pDiff > 0.05 ? "delta-worsened" : "delta-neutral";
+
+    const cdSign = cdDiff > 0 ? "+" : "";
+    const pSign = pDiff > 0 ? "+" : "";
+    const pctSign = cdPctChange > 0 ? "+" : "";
+
+    return `
+      <div class="delta-section">
+        <div class="delta-title">Change from Baseline</div>
+        <div class="delta-row">
+          <span class="delta-label">Cumulative Damage</span>
+          <span class="delta-value ${cdClass}">${cdSign}${cdDiff.toFixed(6)} (${pctSign}${cdPctChange.toFixed(1)}%)</span>
+        </div>
+        <div class="delta-row">
+          <span class="delta-label">Probability</span>
+          <span class="delta-value ${pClass}">${pSign}${pDiff.toFixed(1)} pp</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // ---- Results panel orchestrator ----
+  function renderResultsPanel() {
+    const container = document.getElementById("results");
+    updateComparisonBar();
+
+    if (!baseline) {
+      // Single scenario mode
+      container.innerHTML = renderSingleResult(currentResult);
+      return;
+    }
+
+    // Comparison mode
+    let html = `<div class="comparison-layout">`;
+
+    html += `<div class="comparison-column">
+      <div class="comparison-column-title baseline">Baseline</div>
+      ${renderCompactResult(baseline.result, "Baseline")}
+    </div>`;
+
+    html += `<div class="comparison-column">
+      <div class="comparison-column-title current">Current</div>
+      ${currentResult ? renderCompactResult(currentResult, "Current") : '<div class="results-empty">Add tasks to see results.</div>'}
+    </div>`;
+
+    html += `</div>`;
+
+    if (currentResult && baseline.result) {
+      html += renderDelta(baseline.result, currentResult);
+    }
+
     container.innerHTML = html;
   }
+
+  // ---- Comparison bar buttons ----
+  function updateComparisonBar() {
+    const bar = document.getElementById("comparison-bar");
+    const saveBtn = document.getElementById("btn-save-baseline");
+    const clearBtn = document.getElementById("btn-clear-baseline");
+
+    bar.style.display = selectedModel ? "flex" : "none";
+
+    if (baseline) {
+      saveBtn.style.display = "none";
+      clearBtn.style.display = "";
+    } else {
+      saveBtn.style.display = "";
+      clearBtn.style.display = "none";
+    }
+  }
+
+  document.getElementById("btn-save-baseline").addEventListener("click", () => {
+    if (!currentResult) return;
+    baseline = {
+      tasks: tasks.map(t => ({ name: t.name, params: { ...t.params } })),
+      result: { ...currentResult, tasks: currentResult.tasks.map(t => ({ ...t })) },
+    };
+    updateComparisonBar();
+    renderResultsPanel();
+  });
+
+  document.getElementById("btn-clear-baseline").addEventListener("click", () => {
+    baseline = null;
+    updateComparisonBar();
+    renderResultsPanel();
+  });
 
   // ---- Init ----
   fetchModels();

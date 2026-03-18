@@ -107,6 +107,18 @@ Two endpoints, both JSON.
 
 `POST /api/assess` - accepts a model ID and a list of tasks with their parameters. Returns cumulative damage, probability, probability label, and per-task damage breakdown. This is the only endpoint that performs calculations.
 
+## Status
+
+All 7 tasks are complete. 95 tests passing (76 calculation + 19 API).
+
+- Task 1: API server - done
+- Task 2: Model selector UI - done
+- Task 3: Task input form - done
+- Task 4: Live results - done
+- Task 5: Probability gauge - done (semicircular SVG, green/yellow/red)
+- Task 6: Damage breakdown chart - done (stacked bar + individual bars, color-coded)
+- Task 7: Scenario comparison - done (save baseline, side-by-side, delta display)
+
 ## Tasks
 
 Ordered by dependency. Each task produces a working, testable increment.
