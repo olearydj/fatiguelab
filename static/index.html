@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fatigue Failure Risk Calculator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      line-height: 1.5;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 1.5rem 2rem;
+    }
+
+    header h1 { font-size: 1.4rem; font-weight: 600; }
+    header p { font-size: 0.85rem; color: #aaa; margin-top: 0.25rem; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+
+    /* ---- Model selector ---- */
+
+    .model-cards {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .model-card {
+      flex: 1;
+      background: #fff;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .model-card:hover { border-color: #999; }
+
+    .model-card.selected {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .model-card h3 { font-size: 1.1rem; margin-bottom: 0.25rem; }
+    .model-card p { font-size: 0.8rem; color: #666; }
+
+    /* ---- Main layout ---- */
+
+    .main-layout {
+      display: flex;
+      gap: 1.5rem;
+      align-items: flex-start;
+    }
+
+    .input-panel, .results-panel {
+      background: #fff;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .input-panel { flex: 1; min-width: 0; }
+    .results-panel { flex: 1; min-width: 0; }
+
+    .panel-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* ---- Task form ---- */
+
+    .task-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: flex-end;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .field-group label {
+      font-size: 0.75rem;
+      color: #666;
+      font-weight: 500;
+    }
+
+    .field-group input,
+    .field-group select {
+      padding: 0.5rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      background: #fff;
+    }
+
+    .field-group input:focus,
+    .field-group select:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+
+    .btn {
+      padding: 0.5rem 1.25rem;
+      border: none;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #1d4ed8; }
+
+    .btn-danger {
+      background: none;
+      color: #999;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+    }
+    .btn-danger:hover { color: #e11d48; }
+
+    /* ---- Task list ---- */
+
+    .task-list { margin-top: 1.25rem; }
+
+    .task-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.85rem;
+    }
+
+    .task-item:last-child { border-bottom: none; }
+
+    .task-item-name { font-weight: 500; }
+
+    .task-item-details { color: #666; margin-left: 0.5rem; }
+
+    .task-list-empty {
+      color: #999;
+      font-size: 0.85rem;
+      font-style: italic;
+      padding: 1rem 0;
+    }
+
+    /* ---- Results ---- */
+
+    .result-value {
+      font-size: 2rem;
+      font-weight: 700;
+      margin: 0.25rem 0;
+    }
+
+    .result-label {
+      font-size: 0.75rem;
+      color: #666;
+      margin-bottom: 1.25rem;
+    }
+
+    .risk-green { color: #16a34a; }
+    .risk-yellow { color: #ca8a04; }
+    .risk-red { color: #dc2626; }
+
+    .damage-value {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #333;
+    }
+
+    /* ---- Task breakdown ---- */
+
+    .breakdown { margin-top: 1.5rem; }
+    .breakdown-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.75rem;
+    }
+
+    .breakdown-item {
+      margin-bottom: 0.6rem;
+    }
+
+    .breakdown-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .breakdown-name { font-weight: 500; }
+    .breakdown-pct { color: #666; }
+
+    .breakdown-bar-bg {
+      height: 8px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .breakdown-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: #2563eb;
+      transition: width 0.3s ease;
+    }
+
+    .results-empty {
+      color: #999;
+      font-size: 0.85rem;
+      font-style: italic;
+      padding: 2rem 0;
+      text-align: center;
+    }
+
+    /* ---- Probability bar ---- */
+
+    .prob-bar-container { margin-bottom: 1.5rem; }
+
+    .prob-bar-bg {
+      height: 12px;
+      background: linear-gradient(to right, #16a34a, #ca8a04 50%, #dc2626);
+      border-radius: 6px;
+      position: relative;
+      margin-top: 0.5rem;
+      opacity: 0.25;
+    }
+
+    .prob-bar-marker {
+      position: absolute;
+      top: -4px;
+      width: 4px;
+      height: 20px;
+      background: #333;
+      border-radius: 2px;
+      transition: left 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Fatigue Failure Risk Calculator</h1>
+  <p>MSD risk assessment based on Gallagher, Sesek, Schall et al. — Auburn University</p>
+</header>
+
+<div class="container">
+  <div class="model-cards" id="model-cards"></div>
+
+  <div class="main-layout">
+    <div class="input-panel">
+      <div class="panel-title">Tasks</div>
+      <form class="task-form" id="task-form"></form>
+      <div class="task-list" id="task-list">
+        <div class="task-list-empty">Select a model above to get started.</div>
+      </div>
+    </div>
+
+    <div class="results-panel">
+      <div class="panel-title">Results</div>
+      <div id="results">
+        <div class="results-empty">Add tasks to see results.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // ---- State ----
+  let models = [];
+  let selectedModel = null;
+  let tasks = [];
+  let taskCounter = 0;
+
+  // ---- API ----
+  async function fetchModels() {
+    const res = await fetch("/api/models");
+    const data = await res.json();
+    models = data.models;
+    renderModelCards();
+  }
+
+  async function fetchAssessment() {
+    if (!selectedModel || tasks.length === 0) {
+      renderResults(null);
+      return;
+    }
+
+    const res = await fetch("/api/assess", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: selectedModel.id,
+        tasks: tasks.map(t => ({ name: t.name, params: t.params })),
+      }),
+    });
+
+    if (!res.ok) {
+      renderResults(null);
+      return;
+    }
+
+    const data = await res.json();
+    renderResults(data);
+  }
+
+  // ---- Model cards ----
+  function renderModelCards() {
+    const container = document.getElementById("model-cards");
+    container.innerHTML = "";
+
+    models.forEach(model => {
+      const card = document.createElement("div");
+      card.className = "model-card";
+      card.innerHTML = `<h3>${model.name}</h3><p>${model.description}</p>`;
+      card.addEventListener("click", () => selectModel(model));
+      container.appendChild(card);
+    });
+  }
+
+  function selectModel(model) {
+    selectedModel = model;
+    tasks = [];
+    taskCounter = 0;
+
+    document.querySelectorAll(".model-card").forEach((card, i) => {
+      card.classList.toggle("selected", models[i].id === model.id);
+    });
+
+    renderForm();
+    renderTaskList();
+    fetchAssessment();
+  }
+
+  // ---- Task form ----
+  function renderForm() {
+    const form = document.getElementById("task-form");
+    form.innerHTML = "";
+
+    if (!selectedModel) return;
+
+    // Name field
+    const nameGroup = document.createElement("div");
+    nameGroup.className = "field-group";
+    nameGroup.innerHTML = `
+      <label for="task-name">Task Name</label>
+      <input type="text" id="task-name" placeholder="e.g. Palletizing">
+    `;
+    form.appendChild(nameGroup);
+
+    // Model-specific fields
+    selectedModel.fields.forEach(field => {
+      const group = document.createElement("div");
+      group.className = "field-group";
+
+      if (field.type === "select") {
+        const options = field.options.map(o =>
+          `<option value="${o.value}">${o.label}</option>`
+        ).join("");
+        group.innerHTML = `
+          <label for="field-${field.name}">${field.label}</label>
+          <select id="field-${field.name}">${options}</select>
+        `;
+      } else {
+        group.innerHTML = `
+          <label for="field-${field.name}">${field.label}</label>
+          <input type="number" id="field-${field.name}"
+                 min="${field.min ?? ""}" step="${field.step ?? "any"}"
+                 placeholder="0">
+        `;
+      }
+      form.appendChild(group);
+    });
+
+    // Add button
+    const btnGroup = document.createElement("div");
+    btnGroup.style.display = "flex";
+    btnGroup.style.alignItems = "flex-end";
+    btnGroup.innerHTML = `<button type="submit" class="btn btn-primary">Add Task</button>`;
+    form.appendChild(btnGroup);
+
+    form.onsubmit = (e) => {
+      e.preventDefault();
+      addTask();
+    };
+  }
+
+  function addTask() {
+    if (!selectedModel) return;
+
+    taskCounter++;
+    const nameInput = document.getElementById("task-name");
+    const name = nameInput.value.trim() || `Task ${taskCounter}`;
+
+    const params = {};
+    selectedModel.fields.forEach(field => {
+      const el = document.getElementById(`field-${field.name}`);
+      if (field.type === "select") {
+        // Determine if the value is numeric
+        const val = el.value;
+        params[field.name] = isNaN(val) ? val : Number(val);
+      } else {
+        params[field.name] = Number(el.value) || 0;
+      }
+    });
+
+    tasks.push({ name, params });
+
+    // Reset form
+    nameInput.value = "";
+    selectedModel.fields.forEach(field => {
+      const el = document.getElementById(`field-${field.name}`);
+      if (field.type !== "select") el.value = "";
+    });
+    nameInput.focus();
+
+    renderTaskList();
+    fetchAssessment();
+  }
+
+  // ---- Task list ----
+  function renderTaskList() {
+    const container = document.getElementById("task-list");
+
+    if (!selectedModel) {
+      container.innerHTML = `<div class="task-list-empty">Select a model above to get started.</div>`;
+      return;
+    }
+
+    if (tasks.length === 0) {
+      container.innerHTML = `<div class="task-list-empty">No tasks added yet. Fill in the form above.</div>`;
+      return;
+    }
+
+    container.innerHTML = "";
+    tasks.forEach((task, i) => {
+      const item = document.createElement("div");
+      item.className = "task-item";
+
+      const details = selectedModel.fields.map(f => {
+        const val = task.params[f.name];
+        if (f.type === "select") {
+          const opt = f.options.find(o => String(o.value) === String(val));
+          return opt ? opt.label : val;
+        }
+        return `${val} ${f.label.match(/\(([^)]+)\)/)?.[1] || ""}`.trim();
+      }).join(", ");
+
+      item.innerHTML = `
+        <div>
+          <span class="task-item-name">${task.name}</span>
+          <span class="task-item-details">${details}</span>
+        </div>
+        <button class="btn btn-danger" data-index="${i}">remove</button>
+      `;
+
+      item.querySelector("button").addEventListener("click", () => {
+        tasks.splice(i, 1);
+        renderTaskList();
+        fetchAssessment();
+      });
+
+      container.appendChild(item);
+    });
+  }
+
+  // ---- Results ----
+  function renderResults(data) {
+    const container = document.getElementById("results");
+
+    if (!data || data.tasks.length === 0) {
+      container.innerHTML = `<div class="results-empty">Add tasks to see results.</div>`;
+      return;
+    }
+
+    const pct = data.probability * 100;
+    let riskClass, riskLabel;
+    if (pct < 25) {
+      riskClass = "risk-green";
+      riskLabel = "Low";
+    } else if (pct < 50) {
+      riskClass = "risk-yellow";
+      riskLabel = "Moderate";
+    } else {
+      riskClass = "risk-red";
+      riskLabel = "High";
+    }
+
+    let html = `
+      <div class="prob-bar-container">
+        <div class="result-label">${data.probability_label}</div>
+        <div class="result-value ${riskClass}">${pct.toFixed(1)}%</div>
+        <div class="prob-bar-bg">
+          <div class="prob-bar-marker" style="left: ${Math.min(pct, 100)}%"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="result-label">Cumulative Damage</div>
+        <div class="damage-value">${data.cumulative_damage.toFixed(6)}</div>
+      </div>
+
+      <div class="breakdown">
+        <div class="breakdown-title">Damage by Task</div>
+    `;
+
+    data.tasks.forEach(t => {
+      html += `
+        <div class="breakdown-item">
+          <div class="breakdown-header">
+            <span class="breakdown-name">${t.name}</span>
+            <span class="breakdown-pct">${t.pct_total.toFixed(1)}%</span>
+          </div>
+          <div class="breakdown-bar-bg">
+            <div class="breakdown-bar-fill" style="width: ${t.pct_total}%"></div>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `</div>`;
+    container.innerHTML = html;
+  }
+
+  // ---- Init ----
+  fetchModels();
+})();
+</script>
+
+</body>
+</html>
