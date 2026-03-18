@@ -241,27 +241,101 @@
       text-align: center;
     }
 
-    /* ---- Probability bar ---- */
+    /* ---- Probability gauge ---- */
 
-    .prob-bar-container { margin-bottom: 1.5rem; }
-
-    .prob-bar-bg {
-      height: 12px;
-      background: linear-gradient(to right, #16a34a, #ca8a04 50%, #dc2626);
-      border-radius: 6px;
-      position: relative;
-      margin-top: 0.5rem;
-      opacity: 0.25;
+    .gauge-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding: 1rem 0;
     }
 
-    .prob-bar-marker {
-      position: absolute;
-      top: -4px;
-      width: 4px;
-      height: 20px;
-      background: #333;
+    .gauge-label {
+      font-size: 0.75rem;
+      color: #666;
+      margin-bottom: 0.75rem;
+      text-align: center;
+    }
+
+    .gauge-svg {
+      width: 200px;
+      height: 120px;
+    }
+
+    .gauge-track {
+      fill: none;
+      stroke: #e5e7eb;
+      stroke-width: 18;
+      stroke-linecap: round;
+    }
+
+    .gauge-fill {
+      fill: none;
+      stroke-width: 18;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+    }
+
+    .gauge-pct {
+      font-size: 2.2rem;
+      font-weight: 700;
+      text-anchor: middle;
+    }
+
+    .gauge-risk-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-anchor: middle;
+      fill: #666;
+    }
+
+    .gauge-ticks text {
+      font-size: 0.55rem;
+      fill: #999;
+    }
+
+    /* ---- Damage breakdown chart ---- */
+
+    .breakdown-stacked {
+      margin-bottom: 0.75rem;
+    }
+
+    .breakdown-stacked-bar {
+      display: flex;
+      height: 28px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #f0f0f0;
+    }
+
+    .breakdown-stacked-segment {
+      height: 100%;
+      transition: width 0.3s ease;
+      position: relative;
+      min-width: 2px;
+    }
+
+    .breakdown-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .breakdown-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: #555;
+    }
+
+    .breakdown-legend-swatch {
+      width: 10px;
+      height: 10px;
       border-radius: 2px;
-      transition: left 0.3s ease;
+      flex-shrink: 0;
     }
   </style>
 </head>
@@ -300,6 +374,25 @@
   let selectedModel = null;
   let tasks = [];
   let taskCounter = 0;
+
+  // ---- Example tasks per model ----
+  const EXAMPLES = {
+    lifft: [
+      { name: "Palletizing",  params: { load_kg: 15, distance_m: 0.45, reps: 600 } },
+      { name: "Light picks",  params: { load_kg: 5,  distance_m: 0.3,  reps: 300 } },
+      { name: "Heavy bags",   params: { load_kg: 25, distance_m: 0.55, reps: 80 } },
+    ],
+    duet: [
+      { name: "Connectors",   params: { omni: 3, reps: 2000 } },
+      { name: "Screws",       params: { omni: 5, reps: 800 } },
+      { name: "Crimping",     params: { omni: 8, reps: 150 } },
+    ],
+    shoulder: [
+      { name: "Shelf stocking", params: { load_lb: 3,  distance_in: 20, reps: 1500, task_type: "handling" } },
+      { name: "Reaching",       params: { load_lb: 1,  distance_in: 24, reps: 800,  task_type: "handling" } },
+      { name: "Cart pushing",   params: { load_lb: 10, distance_in: 12, reps: 200,  task_type: "push_pull" } },
+    ],
+  };
 
   // ---- API ----
   async function fetchModels() {
@@ -349,8 +442,9 @@
 
   function selectModel(model) {
     selectedModel = model;
-    tasks = [];
-    taskCounter = 0;
+    const examples = EXAMPLES[model.id] || [];
+    tasks = examples.map(e => ({ name: e.name, params: { ...e.params } }));
+    taskCounter = tasks.length;
 
     document.querySelectorAll(".model-card").forEach((card, i) => {
       card.classList.toggle("selected", models[i].id === model.id);
@@ -493,6 +587,88 @@
     });
   }
 
+  // ---- Chart colors ----
+  const TASK_COLORS = [
+    "#2563eb", "#e11d48", "#ca8a04", "#16a34a",
+    "#7c3aed", "#ea580c", "#0891b2", "#be185d",
+    "#4f46e5", "#65a30d",
+  ];
+
+  function riskColor(pct) {
+    if (pct < 25) return "#16a34a";
+    if (pct < 50) return "#ca8a04";
+    return "#dc2626";
+  }
+
+  function riskLabel(pct) {
+    if (pct < 25) return "Low Risk";
+    if (pct < 50) return "Moderate Risk";
+    return "High Risk";
+  }
+
+  // ---- Gauge SVG ----
+  function renderGauge(pct) {
+    // Semicircle arc from 180° to 0° (left to right)
+    const cx = 100, cy = 95, r = 70;
+    const circumference = Math.PI * r;  // half-circle
+    const clampedPct = Math.min(Math.max(pct, 0), 100);
+    const offset = circumference * (1 - clampedPct / 100);
+    const color = riskColor(pct);
+    const label = riskLabel(pct);
+    const riskClass = pct < 25 ? "risk-green" : pct < 50 ? "risk-yellow" : "risk-red";
+
+    return `
+      <svg class="gauge-svg" viewBox="0 0 200 120">
+        <!-- Track -->
+        <path class="gauge-track"
+              d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}" />
+        <!-- Fill -->
+        <path class="gauge-fill"
+              d="M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}"
+              stroke="${color}"
+              stroke-dasharray="${circumference}"
+              stroke-dashoffset="${offset}" />
+        <!-- Percentage -->
+        <text class="gauge-pct ${riskClass}" x="${cx}" y="${cy - 14}">${pct.toFixed(1)}%</text>
+        <!-- Risk label -->
+        <text class="gauge-risk-label" x="${cx}" y="${cy + 2}">${label}</text>
+        <!-- Tick labels -->
+        <g class="gauge-ticks">
+          <text x="${cx - r - 2}" y="${cy + 14}" text-anchor="middle">0</text>
+          <text x="${cx}" y="${cy - r - 6}" text-anchor="middle">50</text>
+          <text x="${cx + r + 2}" y="${cy + 14}" text-anchor="middle">100</text>
+        </g>
+      </svg>
+    `;
+  }
+
+  // ---- Stacked bar chart ----
+  function renderStackedBar(tasks) {
+    if (tasks.length === 0) return "";
+
+    const segments = tasks.map((t, i) => {
+      const color = TASK_COLORS[i % TASK_COLORS.length];
+      return `<div class="breakdown-stacked-segment"
+                   style="width: ${t.pct_total}%; background: ${color}"
+                   title="${t.name}: ${t.pct_total.toFixed(1)}%"></div>`;
+    }).join("");
+
+    const legend = tasks.map((t, i) => {
+      const color = TASK_COLORS[i % TASK_COLORS.length];
+      return `<div class="breakdown-legend-item">
+                <div class="breakdown-legend-swatch" style="background: ${color}"></div>
+                ${t.name} (${t.pct_total.toFixed(1)}%)
+              </div>`;
+    }).join("");
+
+    return `
+      <div class="breakdown-stacked">
+        <div class="breakdown-stacked-bar">${segments}</div>
+        <div class="breakdown-legend">${legend}</div>
+      </div>
+    `;
+  }
+
   // ---- Results ----
   function renderResults(data) {
     const container = document.getElementById("results");
@@ -503,25 +679,11 @@
     }
 
     const pct = data.probability * 100;
-    let riskClass, riskLabel;
-    if (pct < 25) {
-      riskClass = "risk-green";
-      riskLabel = "Low";
-    } else if (pct < 50) {
-      riskClass = "risk-yellow";
-      riskLabel = "Moderate";
-    } else {
-      riskClass = "risk-red";
-      riskLabel = "High";
-    }
 
     let html = `
-      <div class="prob-bar-container">
-        <div class="result-label">${data.probability_label}</div>
-        <div class="result-value ${riskClass}">${pct.toFixed(1)}%</div>
-        <div class="prob-bar-bg">
-          <div class="prob-bar-marker" style="left: ${Math.min(pct, 100)}%"></div>
-        </div>
+      <div class="gauge-container">
+        <div class="gauge-label">${data.probability_label}</div>
+        ${renderGauge(pct)}
       </div>
 
       <div>
@@ -531,17 +693,19 @@
 
       <div class="breakdown">
         <div class="breakdown-title">Damage by Task</div>
+        ${renderStackedBar(data.tasks)}
     `;
 
-    data.tasks.forEach(t => {
+    data.tasks.forEach((t, i) => {
+      const color = TASK_COLORS[i % TASK_COLORS.length];
       html += `
         <div class="breakdown-item">
           <div class="breakdown-header">
             <span class="breakdown-name">${t.name}</span>
-            <span class="breakdown-pct">${t.pct_total.toFixed(1)}%</span>
+            <span class="breakdown-pct">${t.damage.toFixed(6)} (${t.pct_total.toFixed(1)}%)</span>
           </div>
           <div class="breakdown-bar-bg">
-            <div class="breakdown-bar-fill" style="width: ${t.pct_total}%"></div>
+            <div class="breakdown-bar-fill" style="width: ${t.pct_total}%; background: ${color}"></div>
           </div>
         </div>
       `;
