@@ -1,9 +1,9 @@
-"""Tests for the web API (app.py)."""
+"""Tests for the web API."""
 
 import pytest
 from fastapi.testclient import TestClient
 
-from app import app
+from fatiguelab.api import app
 
 client = TestClient(app)
 
@@ -11,6 +11,7 @@ client = TestClient(app)
 # ---------------------------------------------------------------------------
 # GET /api/models
 # ---------------------------------------------------------------------------
+
 
 class TestModelsEndpoint:
     def test_returns_all_models(self):
@@ -61,12 +62,21 @@ class TestModelsEndpoint:
 # POST /api/assess - LiFFT
 # ---------------------------------------------------------------------------
 
+
 class TestAssessLiFFT:
     def test_single_task(self):
-        r = client.post("/api/assess", json={
-            "model": "lifft",
-            "tasks": [{"name": "Lift", "params": {"load_kg": 10, "distance_m": 0.4, "reps": 500}}],
-        })
+        r = client.post(
+            "/api/assess",
+            json={
+                "model": "lifft",
+                "tasks": [
+                    {
+                        "name": "Lift",
+                        "params": {"load_kg": 10, "distance_m": 0.4, "reps": 500},
+                    }
+                ],
+            },
+        )
         assert r.status_code == 200
         d = r.json()
         assert d["model"] == "LiFFT"
@@ -76,13 +86,22 @@ class TestAssessLiFFT:
         assert d["tasks"][0]["pct_total"] == pytest.approx(100.0)
 
     def test_multi_task(self):
-        r = client.post("/api/assess", json={
-            "model": "lifft",
-            "tasks": [
-                {"name": "A", "params": {"load_kg": 15, "distance_m": 0.45, "reps": 600}},
-                {"name": "B", "params": {"load_kg": 5, "distance_m": 0.3, "reps": 300}},
-            ],
-        })
+        r = client.post(
+            "/api/assess",
+            json={
+                "model": "lifft",
+                "tasks": [
+                    {
+                        "name": "A",
+                        "params": {"load_kg": 15, "distance_m": 0.45, "reps": 600},
+                    },
+                    {
+                        "name": "B",
+                        "params": {"load_kg": 5, "distance_m": 0.3, "reps": 300},
+                    },
+                ],
+            },
+        )
         assert r.status_code == 200
         d = r.json()
         assert len(d["tasks"]) == 2
@@ -91,14 +110,26 @@ class TestAssessLiFFT:
 
     def test_matches_cli_output(self):
         """API should produce same results as the CLI calculator."""
-        r = client.post("/api/assess", json={
-            "model": "lifft",
-            "tasks": [
-                {"name": "A", "params": {"load_kg": 10, "distance_m": 0.4, "reps": 500}},
-                {"name": "B", "params": {"load_kg": 5, "distance_m": 0.3, "reps": 200}},
-                {"name": "C", "params": {"load_kg": 20, "distance_m": 0.5, "reps": 100}},
-            ],
-        })
+        r = client.post(
+            "/api/assess",
+            json={
+                "model": "lifft",
+                "tasks": [
+                    {
+                        "name": "A",
+                        "params": {"load_kg": 10, "distance_m": 0.4, "reps": 500},
+                    },
+                    {
+                        "name": "B",
+                        "params": {"load_kg": 5, "distance_m": 0.3, "reps": 200},
+                    },
+                    {
+                        "name": "C",
+                        "params": {"load_kg": 20, "distance_m": 0.5, "reps": 100},
+                    },
+                ],
+            },
+        )
         d = r.json()
         # Cross-check against known CLI output
         assert d["cumulative_damage"] == pytest.approx(0.004871, rel=0.01)
@@ -109,13 +140,17 @@ class TestAssessLiFFT:
 # POST /api/assess - DUET
 # ---------------------------------------------------------------------------
 
+
 class TestAssessDUET:
     def test_published_example(self):
-        """OMNI=4, 1350 reps -> CD≈0.1, P≈32.1%."""
-        r = client.post("/api/assess", json={
-            "model": "duet",
-            "tasks": [{"name": "Test", "params": {"omni": 4, "reps": 1350}}],
-        })
+        """OMNI=4, 1350 reps -> CD~0.1, P~32.1%."""
+        r = client.post(
+            "/api/assess",
+            json={
+                "model": "duet",
+                "tasks": [{"name": "Test", "params": {"omni": 4, "reps": 1350}}],
+            },
+        )
         assert r.status_code == 200
         d = r.json()
         assert d["model"] == "DUET"
@@ -123,13 +158,16 @@ class TestAssessDUET:
         assert d["probability"] * 100 == pytest.approx(32.1, abs=1.0)
 
     def test_multi_task(self):
-        r = client.post("/api/assess", json={
-            "model": "duet",
-            "tasks": [
-                {"name": "Easy", "params": {"omni": 3, "reps": 2000}},
-                {"name": "Hard", "params": {"omni": 8, "reps": 150}},
-            ],
-        })
+        r = client.post(
+            "/api/assess",
+            json={
+                "model": "duet",
+                "tasks": [
+                    {"name": "Easy", "params": {"omni": 3, "reps": 2000}},
+                    {"name": "Hard", "params": {"omni": 8, "reps": 150}},
+                ],
+            },
+        )
         assert r.status_code == 200
         d = r.json()
         # Hard task should dominate
@@ -142,15 +180,26 @@ class TestAssessDUET:
 # POST /api/assess - Shoulder
 # ---------------------------------------------------------------------------
 
+
 class TestAssessShoulder:
     def test_published_example(self):
-        """2 lb, 16 in, 2880 reps -> CD≈0.00428, P≈20.8%."""
-        r = client.post("/api/assess", json={
-            "model": "shoulder",
-            "tasks": [{"name": "Test", "params": {
-                "load_lb": 2, "distance_in": 16, "reps": 2880,
-            }}],
-        })
+        """2 lb, 16 in, 2880 reps -> CD~0.00428, P~20.8%."""
+        r = client.post(
+            "/api/assess",
+            json={
+                "model": "shoulder",
+                "tasks": [
+                    {
+                        "name": "Test",
+                        "params": {
+                            "load_lb": 2,
+                            "distance_in": 16,
+                            "reps": 2880,
+                        },
+                    }
+                ],
+            },
+        )
         assert r.status_code == 200
         d = r.json()
         assert d["model"] == "Shoulder Tool"
@@ -159,14 +208,20 @@ class TestAssessShoulder:
 
     def test_task_type_affects_result(self):
         base = {"load_lb": 10, "distance_in": 12, "reps": 500}
-        r1 = client.post("/api/assess", json={
-            "model": "shoulder",
-            "tasks": [{"name": "A", "params": {**base, "task_type": "handling"}}],
-        })
-        r2 = client.post("/api/assess", json={
-            "model": "shoulder",
-            "tasks": [{"name": "A", "params": {**base, "task_type": "push_pull"}}],
-        })
+        r1 = client.post(
+            "/api/assess",
+            json={
+                "model": "shoulder",
+                "tasks": [{"name": "A", "params": {**base, "task_type": "handling"}}],
+            },
+        )
+        r2 = client.post(
+            "/api/assess",
+            json={
+                "model": "shoulder",
+                "tasks": [{"name": "A", "params": {**base, "task_type": "push_pull"}}],
+            },
+        )
         # Handling includes arm weight, so damage should be higher
         assert r1.json()["cumulative_damage"] > r2.json()["cumulative_damage"]
 
@@ -175,16 +230,20 @@ class TestAssessShoulder:
 # POST /api/assess - error cases
 # ---------------------------------------------------------------------------
 
+
 class TestAssessErrors:
     def test_unknown_model(self):
         r = client.post("/api/assess", json={"model": "bogus", "tasks": []})
         assert r.status_code == 400
 
     def test_missing_params(self):
-        r = client.post("/api/assess", json={
-            "model": "lifft",
-            "tasks": [{"name": "bad", "params": {}}],
-        })
+        r = client.post(
+            "/api/assess",
+            json={
+                "model": "lifft",
+                "tasks": [{"name": "bad", "params": {}}],
+            },
+        )
         assert r.status_code == 400
 
     def test_empty_tasks_returns_zero(self):
@@ -196,14 +255,18 @@ class TestAssessErrors:
         assert d["tasks"] == []
 
     def test_invalid_json(self):
-        r = client.post("/api/assess", content="not json",
-                        headers={"Content-Type": "application/json"})
+        r = client.post(
+            "/api/assess",
+            content="not json",
+            headers={"Content-Type": "application/json"},
+        )
         assert r.status_code == 422
 
 
 # ---------------------------------------------------------------------------
 # Static files
 # ---------------------------------------------------------------------------
+
 
 class TestStaticFiles:
     def test_index_page(self):

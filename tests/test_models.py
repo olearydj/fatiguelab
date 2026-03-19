@@ -1,4 +1,4 @@
-"""Tests for fatigue_calc.py"""
+"""Tests for fatigue failure risk models."""
 
 import math
 import subprocess
@@ -6,15 +6,22 @@ import sys
 
 import pytest
 
-from fatigue_calc import (
-    LiFFT, DUET, ShoulderTool, Task, get_model, MODELS,
-    tendon_cycles_to_failure, tendon_dpc,
+from fatiguelab.models import (
+    LiFFT,
+    DUET,
+    ShoulderTool,
+    Task,
+    get_model,
+    MODELS,
+    tendon_cycles_to_failure,
+    tendon_dpc,
 )
 
 
 # ---------------------------------------------------------------------------
 # Shared tendon S-N curve
 # ---------------------------------------------------------------------------
+
 
 class TestTendonSNCurve:
     def test_known_values(self):
@@ -60,6 +67,7 @@ class TestTendonSNCurve:
 # LiFFT unit tests
 # ---------------------------------------------------------------------------
 
+
 class TestLiFFTDamagePerCycle:
     def setup_method(self):
         self.model = LiFFT()
@@ -97,8 +105,12 @@ class TestLiFFTTaskDamage:
         self.model = LiFFT()
 
     def test_scales_with_reps(self):
-        task_100 = Task(name="a", params={"load_kg": 10, "distance_m": 0.4, "reps": 100})
-        task_500 = Task(name="b", params={"load_kg": 10, "distance_m": 0.4, "reps": 500})
+        task_100 = Task(
+            name="a", params={"load_kg": 10, "distance_m": 0.4, "reps": 100}
+        )
+        task_500 = Task(
+            name="b", params={"load_kg": 10, "distance_m": 0.4, "reps": 500}
+        )
         assert self.model.task_damage(task_500) == pytest.approx(
             self.model.task_damage(task_100) * 5
         )
@@ -137,7 +149,9 @@ class TestLiFFTAssessment:
         self.model = LiFFT()
 
     def test_single_task_pct_is_100(self):
-        tasks = [Task(name="only", params={"load_kg": 10, "distance_m": 0.4, "reps": 500})]
+        tasks = [
+            Task(name="only", params={"load_kg": 10, "distance_m": 0.4, "reps": 500})
+        ]
         result = self.model.assess(tasks)
         assert result.tasks[0].pct_total == pytest.approx(100.0)
 
@@ -170,6 +184,7 @@ class TestLiFFTAssessment:
 # DUET unit tests
 # ---------------------------------------------------------------------------
 
+
 class TestDUETDamagePerCycle:
     def setup_method(self):
         self.model = DUET()
@@ -178,14 +193,16 @@ class TestDUETDamagePerCycle:
         assert self.model.damage_per_cycle(omni=0) == 0.0
 
     def test_omni_4_matches_published(self):
-        """OMNI 4 = 40% UTS. N = 10^((101.25-40)/14.83) ≈ 13,499."""
+        """OMNI 4 = 40% UTS. N = 10^((101.25-40)/14.83) ~ 13,499."""
         dpc = self.model.damage_per_cycle(omni=4)
         expected = 1.0 / 10 ** ((101.25 - 40) / 14.83)
         assert dpc == pytest.approx(expected)
 
     def test_damage_increases_with_omni(self):
         for omni in range(1, 10):
-            assert self.model.damage_per_cycle(omni=omni + 1) > self.model.damage_per_cycle(omni=omni)
+            assert self.model.damage_per_cycle(
+                omni=omni + 1
+            ) > self.model.damage_per_cycle(omni=omni)
 
     def test_known_dpc_values(self):
         """Verify against precomputed DPC table from research."""
@@ -202,7 +219,9 @@ class TestDUETDamagePerCycle:
         }
         for omni, exp_dpc in expected.items():
             dpc = self.model.damage_per_cycle(omni=omni)
-            assert dpc == pytest.approx(exp_dpc, rel=0.02), f"OMNI {omni}: {dpc} != {exp_dpc}"
+            assert dpc == pytest.approx(exp_dpc, rel=0.02), (
+                f"OMNI {omni}: {dpc} != {exp_dpc}"
+            )
 
 
 class TestDUETPublishedExamples:
@@ -219,7 +238,7 @@ class TestDUETPublishedExamples:
         assert result.probability * 100 == pytest.approx(32.1, abs=1.0)
 
     def test_multi_task_probability(self):
-        """Published: multi-task CD=0.597 -> P≈60.5%."""
+        """Published: multi-task CD=0.597 -> P~60.5%."""
         cd = 0.597
         p = self.model.probability(cd)
         assert p * 100 == pytest.approx(60.5, abs=1.5)
@@ -295,30 +314,41 @@ class TestDUETAssessment:
 # Shoulder Tool unit tests
 # ---------------------------------------------------------------------------
 
+
 class TestShoulderMoment:
     def setup_method(self):
         self.model = ShoulderTool()
 
     def test_handling_includes_arm_weight(self):
         """Handling moment = load*dist + arm_weight*dist/2."""
-        moment = self.model.shoulder_moment(load_lb=5, distance_in=18, task_type="handling")
+        moment = self.model.shoulder_moment(
+            load_lb=5, distance_in=18, task_type="handling"
+        )
         expected = 5 * 18 + 8.6 * 18 / 2
         assert moment == pytest.approx(expected)
 
     def test_push_pull_excludes_arm_weight(self):
-        moment = self.model.shoulder_moment(load_lb=10, distance_in=12, task_type="push_pull")
+        moment = self.model.shoulder_moment(
+            load_lb=10, distance_in=12, task_type="push_pull"
+        )
         assert moment == pytest.approx(10 * 12)
 
     def test_push_down_excludes_arm_weight(self):
-        moment = self.model.shoulder_moment(load_lb=10, distance_in=12, task_type="push_down")
+        moment = self.model.shoulder_moment(
+            load_lb=10, distance_in=12, task_type="push_down"
+        )
         assert moment == pytest.approx(10 * 12)
 
     def test_zero_load_handling_still_has_arm_weight(self):
-        moment = self.model.shoulder_moment(load_lb=0, distance_in=18, task_type="handling")
+        moment = self.model.shoulder_moment(
+            load_lb=0, distance_in=18, task_type="handling"
+        )
         assert moment > 0  # Arm weight alone contributes
 
     def test_zero_distance(self):
-        moment = self.model.shoulder_moment(load_lb=10, distance_in=0, task_type="handling")
+        moment = self.model.shoulder_moment(
+            load_lb=10, distance_in=0, task_type="handling"
+        )
         assert moment == 0.0
 
 
@@ -329,10 +359,17 @@ class TestShoulderPublishedExamples:
         self.model = ShoulderTool()
 
     def test_mono_task_2lb_16in_2880reps(self):
-        """Published: 2 lb, 16 in, 2880 reps -> CD≈0.00428, P≈20.8%."""
-        tasks = [Task(name="test", params={
-            "load_lb": 2, "distance_in": 16, "reps": 2880,
-        })]
+        """Published: 2 lb, 16 in, 2880 reps -> CD~0.00428, P~20.8%."""
+        tasks = [
+            Task(
+                name="test",
+                params={
+                    "load_lb": 2,
+                    "distance_in": 16,
+                    "reps": 2880,
+                },
+            )
+        ]
         result = self.model.assess(tasks)
         assert result.cumulative_damage == pytest.approx(0.00428, rel=0.15)
         assert result.probability * 100 == pytest.approx(20.8, abs=3.0)
@@ -377,11 +414,21 @@ class TestShoulderTaskDamage:
         assert self.model.task_damage(task) == 0.0
 
     def test_default_task_type_is_handling(self):
-        task_default = Task(name="a", params={"load_lb": 5, "distance_in": 18, "reps": 100})
-        task_handling = Task(name="b", params={
-            "load_lb": 5, "distance_in": 18, "reps": 100, "task_type": "handling",
-        })
-        assert self.model.task_damage(task_default) == self.model.task_damage(task_handling)
+        task_default = Task(
+            name="a", params={"load_lb": 5, "distance_in": 18, "reps": 100}
+        )
+        task_handling = Task(
+            name="b",
+            params={
+                "load_lb": 5,
+                "distance_in": 18,
+                "reps": 100,
+                "task_type": "handling",
+            },
+        )
+        assert self.model.task_damage(task_default) == self.model.task_damage(
+            task_handling
+        )
 
 
 class TestShoulderProbability:
@@ -436,6 +483,7 @@ class TestShoulderAssessment:
 # Model registry
 # ---------------------------------------------------------------------------
 
+
 class TestModelRegistry:
     def test_get_lifft(self):
         model = get_model("lifft")
@@ -466,11 +514,13 @@ class TestModelRegistry:
 # CLI integration tests
 # ---------------------------------------------------------------------------
 
+
 class TestCLI:
     def run_cli(self, *args):
         result = subprocess.run(
-            [sys.executable, "fatigue_calc.py", *args],
-            capture_output=True, text=True,
+            [sys.executable, "-m", "fatiguelab.cli", *args],
+            capture_output=True,
+            text=True,
         )
         return result
 
@@ -536,7 +586,9 @@ class TestCLI:
         assert "Cumulative Damage" in result.stdout
 
     def test_shoulder_multi_task(self):
-        result = self.run_cli("shoulder", "-t", "2,16,2880,Reaching", "-t", "5,18,500,Lifting")
+        result = self.run_cli(
+            "shoulder", "-t", "2,16,2880,Reaching", "-t", "5,18,500,Lifting"
+        )
         assert result.returncode == 0
         assert "Reaching" in result.stdout
         assert "Lifting" in result.stdout
@@ -544,7 +596,9 @@ class TestCLI:
     def test_shoulder_with_task_type(self):
         """Push/pull excludes arm weight, so damage should differ from handling."""
         handling = self.run_cli("shoulder", "--task", "10,12,500")
-        push_pull = self.run_cli("shoulder", "--task-type", "push_pull", "--task", "10,12,500")
+        push_pull = self.run_cli(
+            "shoulder", "--task-type", "push_pull", "--task", "10,12,500"
+        )
         assert handling.returncode == 0
         assert push_pull.returncode == 0
         assert handling.stdout != push_pull.stdout

@@ -1,7 +1,7 @@
 [project]
-name = "agentic-demo-rehearsal"
+name = "fatiguelab"
 version = "0.1.0"
-description = "Add your description here"
+description = "MSD risk assessment tools based on fatigue failure theory (LiFFT, DUET, Shoulder Tool)"
 requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.135.1",
@@ -13,3 +13,13 @@ dev = [
     "httpx>=0.28.1",
     "pytest>=9.0.2",
 ]
+
+[project.scripts]
+fl = "fatiguelab.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.7,<1"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
