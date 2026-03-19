@@ -1,6 +1,11 @@
 __pycache__/
 *.pyc
+*.pyo
 *.egg-info/
 .venv/
 .pytest_cache/
 dist/
+build/
+*.whl
+docs/sessions
+.claude/
