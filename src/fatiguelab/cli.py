@@ -127,6 +127,7 @@ Show available models:
         print(f"""
   {B}{C}fatiguelab{R} - MSD risk assessment using fatigue failure theory
   {D}Gallagher, Sesek, Schall et al. - Auburn University{R}
+  {D}https://github.com/olearydj/fatiguelab{R}
 
   {B}Quick start:{R}
     fl demo                  Interactive walkthrough
@@ -136,7 +137,6 @@ Show available models:
   {B}More info:{R}
     fl --help                Full usage and examples
     fl --list                Available models
-    {D}https://github.com/olearydj/fatiguelab{R}
 """)
         return
 
