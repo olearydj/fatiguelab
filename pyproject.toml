@@ -1,6 +1,6 @@
 [project]
 name = "fatiguelab"
-version = "0.1.0"
+version = "0.1.1"
 description = "MSD risk assessment tools based on fatigue failure theory (LiFFT, DUET, Shoulder Tool)"
 license = "MIT"
 authors = [{ name = "Danny J. O'Leary" }]
@@ -18,6 +18,7 @@ dev = [
 
 [project.scripts]
 fl = "fatiguelab.cli:main"
+fatiguelab = "fatiguelab.cli:main"
 
 [project.urls]
 Repository = "https://github.com/olearydj/fatiguelab"
