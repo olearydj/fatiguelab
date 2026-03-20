@@ -143,19 +143,19 @@ class TestAssessLiFFT:
 
 class TestAssessDUET:
     def test_published_example(self):
-        """OMNI=4, 1350 reps -> CD~0.1, P~32.1%."""
+        """Figure 2: OMNI=2, 5400 reps -> CD=0.0074, P=26.5%."""
         r = client.post(
             "/api/assess",
             json={
                 "model": "duet",
-                "tasks": [{"name": "Test", "params": {"omni": 4, "reps": 1350}}],
+                "tasks": [{"name": "Test", "params": {"omni": 2, "reps": 5400}}],
             },
         )
         assert r.status_code == 200
         d = r.json()
         assert d["model"] == "DUET"
-        assert d["cumulative_damage"] == pytest.approx(0.1, rel=0.02)
-        assert d["probability"] * 100 == pytest.approx(32.1, abs=1.0)
+        assert d["cumulative_damage"] == pytest.approx(0.0074, rel=0.02)
+        assert d["probability"] * 100 == pytest.approx(26.5, abs=0.5)
 
     def test_multi_task(self):
         r = client.post(

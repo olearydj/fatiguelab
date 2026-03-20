@@ -189,13 +189,15 @@ class TestDUETDamagePerCycle:
     def setup_method(self):
         self.model = DUET()
 
-    def test_omni_0_is_zero_damage(self):
-        assert self.model.damage_per_cycle(omni=0) == 0.0
+    def test_omni_0_very_low_damage(self):
+        """OMNI 0 = 3.6% UTS per Table 1; very low but nonzero."""
+        dpc = self.model.damage_per_cycle(omni=0)
+        assert dpc == pytest.approx(2.6e-7, rel=0.02)
 
     def test_omni_4_matches_published(self):
-        """OMNI 4 = 40% UTS. N = 10^((101.25-40)/14.83) ~ 13,499."""
+        """OMNI 4 = 28.6% UTS per Table 1. N = 10^((101.25-28.6)/14.83) ~ 79,223."""
         dpc = self.model.damage_per_cycle(omni=4)
-        expected = 1.0 / 10 ** ((101.25 - 40) / 14.83)
+        expected = 1.0 / 10 ** ((101.25 - 28.6) / 14.83)
         assert dpc == pytest.approx(expected)
 
     def test_damage_increases_with_omni(self):
@@ -205,17 +207,19 @@ class TestDUETDamagePerCycle:
             ) > self.model.damage_per_cycle(omni=omni)
 
     def test_known_dpc_values(self):
-        """Verify against precomputed DPC table from research."""
+        """Verify against Table 1 DPC values from Gallagher et al. (2018)."""
         expected = {
-            1: 7.03e-7,
-            2: 3.32e-6,
-            3: 1.57e-5,
-            4: 7.41e-5,
-            5: 3.50e-4,
-            6: 1.65e-3,
-            7: 7.81e-3,
-            8: 3.69e-2,
-            9: 1.74e-1,
+            0: 2.60e-7,
+            1: 4.47e-7,
+            2: 1.37e-6,
+            3: 4.13e-6,
+            4: 1.26e-5,
+            5: 3.80e-5,
+            6: 1.16e-4,
+            7: 3.50e-4,
+            8: 1.05e-3,
+            9: 3.23e-3,
+            10: 9.71e-3,
         }
         for omni, exp_dpc in expected.items():
             dpc = self.model.damage_per_cycle(omni=omni)
@@ -230,18 +234,24 @@ class TestDUETPublishedExamples:
     def setup_method(self):
         self.model = DUET()
 
-    def test_mono_task_omni4_1350reps(self):
-        """Published: OMNI=4, 1350 reps -> CD=0.1000, P=32.1%."""
-        tasks = [Task(name="test", params={"omni": 4, "reps": 1350})]
+    def test_mono_task_figure2(self):
+        """Figure 2: OMNI=2, 5400 reps -> CD=0.0074, P=26.5%."""
+        tasks = [Task(name="test", params={"omni": 2, "reps": 5400})]
         result = self.model.assess(tasks)
-        assert result.cumulative_damage == pytest.approx(0.1000, rel=0.02)
-        assert result.probability * 100 == pytest.approx(32.1, abs=1.0)
+        assert result.cumulative_damage == pytest.approx(0.0074, rel=0.02)
+        assert result.probability * 100 == pytest.approx(26.5, abs=0.5)
 
-    def test_multi_task_probability(self):
-        """Published: multi-task CD=0.597 -> P~60.5%."""
-        cd = 0.597
-        p = self.model.probability(cd)
-        assert p * 100 == pytest.approx(60.5, abs=1.5)
+    def test_multi_task_figure3(self):
+        """Figure 3: four tasks -> CD=0.59703, P~60.5%."""
+        tasks = [
+            Task(name="Task 1", params={"omni": 2, "reps": 5184}),
+            Task(name="Task 2", params={"omni": 4, "reps": 180}),
+            Task(name="Task 3", params={"omni": 10, "reps": 60}),
+            Task(name="Task 4", params={"omni": 2, "reps": 3752}),
+        ]
+        result = self.model.assess(tasks)
+        assert result.cumulative_damage == pytest.approx(0.597, rel=0.01)
+        assert result.probability * 100 == pytest.approx(60.5, abs=1.0)
 
 
 class TestDUETTaskDamage:
@@ -279,7 +289,7 @@ class TestDUETProbability:
 
     def test_logistic_formula(self):
         cd = 0.1
-        y = 0.766 + 1.515 * math.log10(cd)
+        y = 0.573 + 0.747 * math.log10(cd)
         expected = math.exp(y) / (1 + math.exp(y))
         assert self.model.probability(cd) == pytest.approx(expected)
 

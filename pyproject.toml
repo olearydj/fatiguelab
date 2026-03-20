@@ -1,6 +1,6 @@
 [project]
 name = "fatiguelab"
-version = "0.1.1"
+version = "0.2.0"
 description = "MSD risk assessment tools based on fatigue failure theory (LiFFT, DUET, Shoulder Tool)"
 license = "MIT"
 authors = [{ name = "Danny J. O'Leary" }]

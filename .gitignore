@@ -8,4 +8,5 @@ dist/
 build/
 *.whl
 docs/sessions
+docs/pdfs/
 .claude/

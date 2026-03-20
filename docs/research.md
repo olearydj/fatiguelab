@@ -135,7 +135,7 @@ Mpl = Load Weight × Horizontal Distance from Spine
 D = Σᵢ (nᵢ / e^(0.038 × Mpl_i + 0.32)) × 1,902,416
 ```
 
-Wait — let me state this more precisely. The damage equation from the Exo-LiFFT paper (Eq. 1) is:
+More precisely, the damage equation from the Exo-LiFFT paper (Eq. 1) is:
 
 ```
 D = Σᵢ nᵢ / (1,902,416 × e^(-(0.038 × Mpl_i + 0.32)))
@@ -193,59 +193,50 @@ Where "high-risk" is defined as a job having ≥12 injuries per 200,000 hours wo
 
 (Odd numbers are valid intermediate ratings.)
 
-**OMNI-RES to % UTS Mapping:**
+**OMNI-RES to % UTS Mapping (Table 1):**
 
-Each OMNI-RES point corresponds to 10% of ultimate tendon strength:
-
-```
-S = OMNI × 10    (% UTS)
-```
-
-This assumes the perceived exertion rating is proportional to the fraction of maximum voluntary force capacity, which in turn is proportional to ultimate tendon strength.
+At 100% MVC, tendon strain is only ~73% of failure strain (Wren et al. 2001). The reciprocal (1/0.73 ≈ 1.4) means failure strain is 1.4× MVC. So OMNI 10 (max effort) = 100/1.4 = 71.4% UTS, not 100%.
 
 **Tissue Model:** Schechtman & Bader (1997) tendon S-N curve.
 
 **Damage Per Cycle:**
 
-```
-N = 10^((101.25 - OMNI × 10) / 14.83)
-DPC = 1 / N = 10^(-(101.25 - OMNI × 10) / 14.83)
-```
+DPC is computed from the S-N curve using the Table 1 stress mapping.
 
-**Precomputed DPC Table:**
+**DPC Table (Table 1, Gallagher et al. 2018):**
 
 | OMNI | S (% UTS) | N (cycles to failure) | DPC |
 |:----:|:---------:|:---------------------:|:---:|
-| 0 | 0 | — | 0 |
-| 1 | 10 | 1,422,751 | 7.03 × 10⁻⁷ |
-| 2 | 20 | 301,192 | 3.32 × 10⁻⁶ |
-| 3 | 30 | 63,762 | 1.57 × 10⁻⁵ |
-| 4 | 40 | 13,499 | 7.41 × 10⁻⁵ |
-| 5 | 50 | 2,858 | 3.50 × 10⁻⁴ |
-| 6 | 60 | 605 | 1.65 × 10⁻³ |
-| 7 | 70 | 128 | 7.81 × 10⁻³ |
-| 8 | 80 | 27 | 3.69 × 10⁻² |
-| 9 | 90 | 6 | 1.74 × 10⁻¹ |
-| 10 | 100 | 1 | 8.24 × 10⁻¹ |
+| 0 | 3.6 | 3,842,605 | 2.60 × 10⁻⁷ |
+| 1 | 7.1 | 2,231,607 | 4.48 × 10⁻⁷ |
+| 2 | 14.3 | 729,651 | 1.37 × 10⁻⁶ |
+| 3 | 21.4 | 242,301 | 4.13 × 10⁻⁶ |
+| 4 | 28.6 | 79,223 | 1.26 × 10⁻⁵ |
+| 5 | 35.7 | 26,308 | 3.80 × 10⁻⁵ |
+| 6 | 42.9 | 8,602 | 1.16 × 10⁻⁴ |
+| 7 | 50.0 | 2,856 | 3.50 × 10⁻⁴ |
+| 8 | 57.1 | 949 | 1.05 × 10⁻³ |
+| 9 | 64.3 | 310 | 3.23 × 10⁻³ |
+| 10 | 71.4 | 103 | 9.71 × 10⁻³ |
 
 **Cumulative Damage:**
 
-```
+```text
 CD = Σᵢ (DPCᵢ × nᵢ)
 ```
 
 **Probability of Distal Upper Extremity Outcome (Logistic Regression):**
 
-```
-Y = 0.766 + 1.515 × log₁₀(CD)
+Equation 6 from Gallagher et al. (2018), for the "Injury + Pain Last Year" outcome:
+
+```text
+Y = 0.573 + 0.747 × log₁₀(CD)
 P = eʸ / (1 + eʸ)
 ```
 
-⚠️ **Note:** These logistic regression coefficients (β₀=0.766, β₁=1.515) were **reverse-engineered** from published example input/output pairs. They reproduce the known examples exactly:
-- OMNI=4, 1350 reps → CD=0.1000 → P=32.1% ✓
-- Multi-task CD=0.597 → P=60.5% ✓
-
-These should be verified against the original 2018 paper when accessible.
+Verified against published examples:
+- Figure 2: OMNI=2, 5400 reps → CD=0.0074 → P=26.5% ✓
+- Figure 3: Four-task example → CD=0.597 → P≈60.5% ✓
 
 **DUET v1.3.0** (04/19/2018) updated the damage per cycle and related damage-risk relationship with a rounding correction.
 
@@ -358,12 +349,10 @@ P = eʸ / (1 + eʸ)
 | **Tissue model** | Spinal motion segment (Brinckmann) | Tendon (Schechtman & Bader) | Tendon (Schechtman & Bader) |
 | **S-N curve** | Exponential (custom) | S = 101.25 − 14.83 log₁₀(N) | S = 101.25 − 14.83 log₁₀(N) |
 | **Loading input** | Load × distance (moment) | OMNI-RES rating (0-10) | Force × distance (moment) |
-| **Strength reference** | ~6 kN (spine compression) | 100% OMNI = 100% UTS | 681 in-lb (3DSSPP) |
-| **Logistic β₀** | 1.72 | 0.766* | 0.870 |
-| **Logistic β₁** | 1.03 | 1.515* | 0.932 |
+| **Strength reference** | ~6 kN (spine compression) | 71.4% UTS at OMNI 10 | 681 in-lb (3DSSPP) |
+| **Logistic β₀** | 1.72 | 0.573 | 0.870 |
+| **Logistic β₁** | 1.03 | 0.747 | 0.932 |
 | **Deviance explained** | 72-95% | significant dose-response | significant dose-response |
-
-\* Reverse-engineered values.
 
 ---
 
@@ -434,8 +423,8 @@ A related **Exo-LiFFT** calculator (Vanderbilt, Zelik Lab) extends LiFFT for exo
 | Tendon S-N curve (101.25, 14.83) | **High** | Published in Shoulder Tool paper, Bani Hani dissertation, multiple reviews |
 | LiFFT damage equation (1,902,416 / 0.038 / 0.32) | **High** | Published in Exo-LiFFT paper (PMC9827614) |
 | LiFFT logistic regression (1.72 / 1.03) | **High** | Published in Exo-LiFFT paper |
-| DUET OMNI-RES → 10% UTS mapping | **Medium** | Inferred from scale structure; consistent with outputs |
-| DUET logistic regression (0.766 / 1.515) | **Medium** | Reverse-engineered from published examples; reproduces exactly |
+| DUET OMNI-RES → % UTS mapping (Table 1) | **High** | Verified against Table 1 of Gallagher et al. (2018); each OMNI point ≈ 7.14% UTS |
+| DUET logistic regression (0.573 / 0.747) | **High** | Equation 6 of Gallagher et al. (2018); verified against Figures 2 and 3 |
 | Shoulder Tool moment calculation | **High** | From dissertation and online tool |
 | Shoulder Tool strength (681 in-lb) | **High** | From dissertation variable naming and 3DSSPP |
 | Shoulder Tool FTOV logistic (0.870 / 0.932) | **High** | From dissertation fitted line plots and verified against test cases |
@@ -445,13 +434,13 @@ A related **Exo-LiFFT** calculator (Vanderbilt, Zelik Lab) extends LiFFT for exo
 
 ## Open Questions
 
-1. **DUET logistic coefficients** — Should be verified against the original Gallagher et al. 2018 paper (behind paywall). The reverse-engineered values match published examples perfectly but may differ slightly from the paper's reported values.
+1. ~~**DUET logistic coefficients**~~ — Resolved. Coefficients are β₀ = 0.573, β₁ = 0.747 from Equation 6 of Gallagher et al. (2018), for the "Injury + Pain Last Year" outcome. Verified against Figures 2 and 3 in the paper.
 
-2. **OMNI-RES to % UTS mapping in DUET** — The linear 10% per point assumption is consistent with tool outputs but the original paper may describe a different or more nuanced mapping.
+2. ~~**OMNI-RES to % UTS mapping in DUET**~~ — Resolved. Table 1 of Gallagher et al. (2018) gives explicit mappings: each OMNI point ≈ 100/14 ≈ 7.14% UTS (not 10%). At 100% MVC, tendon strain is ~73% of failure strain (Wren et al. 2001), so OMNI 10 = 71.4% UTS.
 
 3. **LiFFT damage equation form** — The equation `D = Σ nᵢ × e^(0.038 × Mpl_i + 0.32) / 1,902,416` needs careful attention to whether the exponential is in the numerator or denominator. The Exo-LiFFT paper (Eq. 1) presents it as a ratio, and the denominator form is: `D = Σ nᵢ / [1,902,416 × e^(-(0.038 × Mpl_i + 0.32))]`. Both are equivalent.
 
-4. **Shoulder Tool arm weight** — The ~8.6 lb value was reverse-engineered from tool outputs. The tool may use a more sophisticated anthropometric model.
+4. **Shoulder Tool arm weight** — The ~8.6 lb value was reverse-engineered from tool outputs and verified against Figures 8-10 of Bani Hani et al. (2021). Reproduces published examples accurately. The tool may use a more sophisticated anthropometric model internally.
 
 5. **Healing/recovery** — The theoretical framework acknowledges tissue healing (~1% per day for tendons), but none of the current tools incorporate a healing function. All assess single-day cumulative damage only.
 

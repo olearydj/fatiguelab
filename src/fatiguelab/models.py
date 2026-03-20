@@ -197,11 +197,18 @@ class DUET(FatigueModel):
     name = "DUET"
     description = "Distal Upper Extremity Tool - hand/wrist/forearm disorder risk"
 
-    LOGISTIC_INTERCEPT = 0.766
-    LOGISTIC_SLOPE = 1.515
+    # Logistic regression coefficients for "Injury + Pain Last Year" outcome
+    # from Gallagher et al. (2018) Equation 6
+    LOGISTIC_INTERCEPT = 0.573
+    LOGISTIC_SLOPE = 0.747
+
+    # OMNI-RES to % UTS mapping from Table 1 of Gallagher et al. (2018).
+    # At 100% MVC, tendon strain is ~73% of failure strain (Wren et al. 2001),
+    # so OMNI 10 (max effort) = 100/1.4 = 71.4% UTS, not 100%.
+    OMNI_TO_PCT_UTS = (3.6, 7.1, 14.3, 21.4, 28.6, 35.7, 42.9, 50.0, 57.1, 64.3, 71.4)
 
     def damage_per_cycle(self, omni: int, **_) -> float:
-        stress_pct = omni * 10  # Each OMNI point = 10% UTS
+        stress_pct = self.OMNI_TO_PCT_UTS[omni]
         return tendon_dpc(stress_pct)
 
     def task_damage(self, task: Task) -> float:

@@ -6,9 +6,7 @@ MSD risk assessment tools based on fatigue failure theory, implementing three mo
 - *DUET* - Distal Upper Extremity Tool (hand/wrist/forearm disorder risk)
 - *Shoulder Tool* - shoulder disorder risk
 
-All three models apply the same principle: cumulative micro-damage from repeated loading predicts injury risk, just like metal fatigue predicts structural failure. They use S-N curves and the Palmgren-Miner cumulative damage rule adapted to biological tissues.
-
-For detailed notes on the theoretical foundation, formulas, data sources, and confidence assessments, see [docs/research.md](docs/research.md).
+All three models apply the same principle: cumulative micro-damage from repeated loading predicts injury risk, just like metal fatigue predicts structural failure. They use S-N curves and the Palmgren-Miner cumulative damage rule adapted to biological tissues. For detailed notes on the theoretical foundation, formulas, data sources, and confidence assessments, see [docs/research.md](docs/research.md).
 
 ## Try it
 
