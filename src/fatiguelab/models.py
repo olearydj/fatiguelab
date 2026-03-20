@@ -48,14 +48,21 @@ class FatigueModel(ABC):
 
     name: str
     description: str
+    LOGISTIC_INTERCEPT: float
+    LOGISTIC_SLOPE: float
 
     @abstractmethod
     def task_damage(self, task: Task) -> float:
         """Calculate total damage for a task (DPC x reps)."""
 
-    @abstractmethod
     def probability(self, cumulative_damage: float) -> float:
-        """Convert cumulative damage to risk probability."""
+        """Convert cumulative damage to risk probability via logistic regression."""
+        if cumulative_damage <= 0:
+            return 0.0
+        y = self.LOGISTIC_INTERCEPT + self.LOGISTIC_SLOPE * math.log10(
+            cumulative_damage
+        )
+        return math.exp(y) / (1 + math.exp(y))
 
     @property
     @abstractmethod
@@ -130,14 +137,6 @@ class LiFFT(FatigueModel):
         )
         return dpc * task.params["reps"]
 
-    def probability(self, cumulative_damage: float) -> float:
-        if cumulative_damage <= 0:
-            return 0.0
-        y = self.LOGISTIC_INTERCEPT + self.LOGISTIC_SLOPE * math.log10(
-            cumulative_damage
-        )
-        return math.exp(y) / (1 + math.exp(y))
-
     @property
     def probability_label(self) -> str:
         return "Probability of high-risk job (>=12 injuries per 200k hours)"
@@ -209,14 +208,6 @@ class DUET(FatigueModel):
         dpc = self.damage_per_cycle(omni=task.params["omni"])
         return dpc * task.params["reps"]
 
-    def probability(self, cumulative_damage: float) -> float:
-        if cumulative_damage <= 0:
-            return 0.0
-        y = self.LOGISTIC_INTERCEPT + self.LOGISTIC_SLOPE * math.log10(
-            cumulative_damage
-        )
-        return math.exp(y) / (1 + math.exp(y))
-
     @property
     def probability_label(self) -> str:
         return "Probability of distal upper extremity outcome"
@@ -277,14 +268,6 @@ class ShoulderTool(FatigueModel):
         )
         return dpc * task.params["reps"]
 
-    def probability(self, cumulative_damage: float) -> float:
-        if cumulative_damage <= 0:
-            return 0.0
-        y = self.LOGISTIC_INTERCEPT + self.LOGISTIC_SLOPE * math.log10(
-            cumulative_damage
-        )
-        return math.exp(y) / (1 + math.exp(y))
-
     @property
     def probability_label(self) -> str:
         return "Probability of shoulder MSD (FTOV)"
@@ -306,94 +289,3 @@ def get_model(name: str) -> FatigueModel:
     if cls is None:
         raise ValueError(f"Unknown model: {name}. Available: {', '.join(MODELS)}")
     return cls()
-
-
-# ---------------------------------------------------------------------------
-# CLI task parsers
-# ---------------------------------------------------------------------------
-
-
-def parse_tasks_lifft(args) -> list[Task]:
-    """Parse LiFFT task arguments: --task LOAD_KG,DISTANCE_M,REPS[,NAME]"""
-    import sys
-
-    tasks = []
-    for i, spec in enumerate(args.task):
-        parts = spec.split(",")
-        if len(parts) < 3:
-            print(
-                "Error: task needs at least 3 values: LOAD_KG,DISTANCE_M,REPS",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        name = parts[3] if len(parts) > 3 else f"Task {i + 1}"
-        tasks.append(
-            Task(
-                name=name,
-                params={
-                    "load_kg": float(parts[0]),
-                    "distance_m": float(parts[1]),
-                    "reps": int(parts[2]),
-                },
-            )
-        )
-    return tasks
-
-
-def parse_tasks_duet(args) -> list[Task]:
-    """Parse DUET task arguments: --task OMNI,REPS[,NAME]"""
-    import sys
-
-    tasks = []
-    for i, spec in enumerate(args.task):
-        parts = spec.split(",")
-        if len(parts) < 2:
-            print("Error: task needs at least 2 values: OMNI,REPS", file=sys.stderr)
-            sys.exit(1)
-        name = parts[2] if len(parts) > 2 else f"Task {i + 1}"
-        tasks.append(
-            Task(
-                name=name,
-                params={
-                    "omni": int(parts[0]),
-                    "reps": int(parts[1]),
-                },
-            )
-        )
-    return tasks
-
-
-def parse_tasks_shoulder(args) -> list[Task]:
-    """Parse Shoulder Tool task arguments: --task LOAD_LB,DISTANCE_IN,REPS[,NAME]"""
-    import sys
-
-    task_type = getattr(args, "task_type", None) or "handling"
-    tasks = []
-    for i, spec in enumerate(args.task):
-        parts = spec.split(",")
-        if len(parts) < 3:
-            print(
-                "Error: task needs at least 3 values: LOAD_LB,DISTANCE_IN,REPS",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-        name = parts[3] if len(parts) > 3 else f"Task {i + 1}"
-        tasks.append(
-            Task(
-                name=name,
-                params={
-                    "load_lb": float(parts[0]),
-                    "distance_in": float(parts[1]),
-                    "reps": int(parts[2]),
-                    "task_type": task_type,
-                },
-            )
-        )
-    return tasks
-
-
-TASK_PARSERS = {
-    "lifft": parse_tasks_lifft,
-    "duet": parse_tasks_duet,
-    "shoulder": parse_tasks_shoulder,
-}

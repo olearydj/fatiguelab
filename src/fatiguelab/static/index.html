@@ -547,9 +547,8 @@
     selectedModel = model;
     baseline = null;
     currentResult = null;
-    const examples = EXAMPLES[model.id] || [];
-    tasks = examples.map(e => ({ name: e.name, params: { ...e.params } }));
-    taskCounter = tasks.length;
+    tasks = [];
+    taskCounter = 0;
 
     document.querySelectorAll(".model-card").forEach((card, i) => {
       card.classList.toggle("selected", models[i].id === model.id);
@@ -657,7 +656,22 @@
     }
 
     if (tasks.length === 0) {
+      const hasExamples = EXAMPLES[selectedModel.id] && EXAMPLES[selectedModel.id].length > 0;
       container.innerHTML = `<div class="task-list-empty">No tasks added yet. Fill in the form above.</div>`;
+      if (hasExamples) {
+        const btn = document.createElement("button");
+        btn.className = "btn btn-secondary";
+        btn.textContent = "Load example tasks";
+        btn.style.marginTop = "0.5rem";
+        btn.addEventListener("click", () => {
+          const examples = EXAMPLES[selectedModel.id];
+          tasks = examples.map(e => ({ name: e.name, params: { ...e.params } }));
+          taskCounter = tasks.length;
+          renderTaskList();
+          fetchAssessment();
+        });
+        container.appendChild(btn);
+      }
       return;
     }
 

@@ -531,10 +531,12 @@ class TestCLI:
         assert "duet" in result.stdout
         assert "shoulder" in result.stdout
 
-    def test_no_args_shows_help(self):
+    def test_no_args_shows_quick_start(self):
         result = self.run_cli()
         assert result.returncode == 0
-        assert "usage" in result.stdout.lower() or "Examples" in result.stdout
+        assert "fatiguelab" in result.stdout
+        assert "fl demo" in result.stdout
+        assert "fl --help" in result.stdout
 
     # LiFFT CLI
     def test_lifft_single_task(self):
@@ -610,3 +612,32 @@ class TestCLI:
     def test_shoulder_bad_task_spec_fails(self):
         result = self.run_cli("shoulder", "--task", "2,16")
         assert result.returncode != 0
+
+    def test_main_module(self):
+        """python -m fatiguelab runs without error."""
+        result = subprocess.run(
+            [sys.executable, "-m", "fatiguelab"],
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0
+        assert "fatiguelab" in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# Smoke tests
+# ---------------------------------------------------------------------------
+
+
+class TestDemoImport:
+    def test_demo_module_imports(self):
+        from fatiguelab.demo import run
+
+        assert callable(run)
+
+
+class TestServeImport:
+    def test_api_app_imports(self):
+        from fatiguelab.api import app
+
+        assert app is not None
