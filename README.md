@@ -12,9 +12,19 @@ For detailed notes on the theoretical foundation, formulas, data sources, and co
 
 ## Install
 
-Requires [uv](https://docs.astral.sh/uv/getting-started/installation/).
+Requires [uv](https://docs.astral.sh/uv/getting-started/installation/). Don't have uv? Install it with:
 
-You can run fatiguelab directly without installing:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Or skip installing uv entirely and use [uvx.sh](https://uvx.sh) to install fatiguelab directly:
+
+```bash
+curl -LsSf uvx.sh/fatiguelab/install.sh | sh
+```
+
+With uv installed, you can run fatiguelab without installing it:
 
 ```bash
 uvx fatiguelab --list
@@ -79,6 +89,12 @@ Interactive walkthrough of all three models with realistic scenarios and what-if
 
 ```bash
 fl demo
+```
+
+Works without installing too:
+
+```bash
+uvx fatiguelab demo
 ```
 
 ## Development
