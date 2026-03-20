@@ -77,6 +77,7 @@ Shoulder Tool - task: LOAD_LB,DISTANCE_IN,REPS[,NAME]
 
 Start the web app:
   %(prog)s serve
+  %(prog)s serve --port 8080
 
 Interactive demo walkthrough:
   %(prog)s demo
@@ -100,6 +101,13 @@ Show available models:
     parser.add_argument(
         "--list", "-l", action="store_true", help="List available models"
     )
+    parser.add_argument(
+        "--port",
+        "-p",
+        type=int,
+        default=8000,
+        help="Port for the web server (default: 8000)",
+    )
 
     args = parser.parse_args()
 
@@ -111,7 +119,25 @@ Show available models:
         return
 
     if not args.model:
-        parser.print_help()
+        color = _use_color()
+        B = "\033[1m" if color else ""
+        C = "\033[36m" if color else ""
+        D = "\033[2m" if color else ""
+        R = "\033[0m" if color else ""
+        print(f"""
+  {B}{C}fatiguelab{R} - MSD risk assessment using fatigue failure theory
+  {D}Gallagher, Sesek, Schall et al. - Auburn University{R}
+
+  {B}Quick start:{R}
+    fl demo                  Interactive walkthrough
+    fl serve                 Web app at http://127.0.0.1:8000
+    fl lifft -t 10,0.4,500   Run a LiFFT assessment
+
+  {B}More info:{R}
+    fl --help                Full usage and examples
+    fl --list                Available models
+    {D}https://github.com/olearydj/fatiguelab{R}
+""")
         return
 
     if args.model == "serve":
@@ -119,7 +145,7 @@ Show available models:
 
         from .api import app
 
-        uvicorn.run(app, host="127.0.0.1", port=8000)
+        uvicorn.run(app, host="127.0.0.1", port=args.port)
         return
 
     if args.model == "demo":

@@ -3,6 +3,7 @@ name = "fatiguelab"
 version = "0.1.0"
 description = "MSD risk assessment tools based on fatigue failure theory (LiFFT, DUET, Shoulder Tool)"
 license = "MIT"
+authors = [{ name = "Danny J. O'Leary" }]
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.135.1",
@@ -17,6 +18,9 @@ dev = [
 
 [project.scripts]
 fl = "fatiguelab.cli:main"
+
+[project.urls]
+Repository = "https://github.com/olearydj/fatiguelab"
 
 [build-system]
 requires = ["uv_build>=0.7,<1"]
