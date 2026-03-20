@@ -96,7 +96,7 @@ print(f"Probability: {result.probability:.1%}")
 If you would like to contribute to fatiguelab's development, clone it to your machine as follows:
 
 ```bash
-git clone https://github.com/YOUR_ORG/fatiguelab.git
+git clone https://github.com/olearydj/fatiguelab.git
 cd fatiguelab
 uv sync                             # install dependencies
 uv tool install -e .                # editable install (fl reflects source changes)

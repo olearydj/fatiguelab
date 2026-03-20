@@ -2,6 +2,7 @@
 name = "fatiguelab"
 version = "0.1.0"
 description = "MSD risk assessment tools based on fatigue failure theory (LiFFT, DUET, Shoulder Tool)"
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.135.1",
