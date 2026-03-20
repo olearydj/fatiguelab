@@ -78,12 +78,15 @@ Shoulder Tool - task: LOAD_LB,DISTANCE_IN,REPS[,NAME]
 Start the web app:
   %(prog)s serve
 
+Interactive demo walkthrough:
+  %(prog)s demo
+
 Show available models:
   %(prog)s --list
 """,
     )
     parser.add_argument(
-        "model", nargs="?", help="Model to use (lifft, duet, shoulder) or 'serve'"
+        "model", nargs="?", help="Model (lifft, duet, shoulder), 'serve', or 'demo'"
     )
     parser.add_argument(
         "--task", "-t", action="append", help="Task spec (varies by model)"
@@ -117,6 +120,12 @@ Show available models:
         from .api import app
 
         uvicorn.run(app, host="127.0.0.1", port=8000)
+        return
+
+    if args.model == "demo":
+        from .demo import run
+
+        run()
         return
 
     if not args.task:

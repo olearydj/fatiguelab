@@ -73,12 +73,12 @@ print(f"Cumulative damage: {result.cumulative_damage:.6f}")
 print(f"Probability: {result.probability:.1%}")
 ```
 
-## Demo script
+## Demo
 
-`scripts/demo.sh` walks through all three models with realistic scenarios and what-if comparisons:
+Interactive walkthrough of all three models with realistic scenarios and what-if comparisons:
 
 ```bash
-bash scripts/demo.sh
+fl demo
 ```
 
 ## Development
