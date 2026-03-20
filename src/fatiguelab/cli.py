@@ -75,11 +75,16 @@ Shoulder Tool - task: LOAD_LB,DISTANCE_IN,REPS[,NAME]
   %(prog)s shoulder -t 5,18,4800,Lifting -t 3,14,1200,Reaching
   %(prog)s shoulder --task-type push_pull -t 10,12,500,Pushing
 
+Start the web app:
+  %(prog)s serve
+
 Show available models:
   %(prog)s --list
 """,
     )
-    parser.add_argument("model", nargs="?", help="Model to use (lifft)")
+    parser.add_argument(
+        "model", nargs="?", help="Model to use (lifft, duet, shoulder) or 'serve'"
+    )
     parser.add_argument(
         "--task", "-t", action="append", help="Task spec (varies by model)"
     )
@@ -104,6 +109,14 @@ Show available models:
 
     if not args.model:
         parser.print_help()
+        return
+
+    if args.model == "serve":
+        import uvicorn
+
+        from .api import app
+
+        uvicorn.run(app, host="127.0.0.1", port=8000)
         return
 
     if not args.task:

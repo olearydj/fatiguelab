@@ -2,13 +2,26 @@
 
 MSD risk assessment tools based on fatigue failure theory, implementing three models developed by Gallagher, Sesek, Schall et al. at Auburn University:
 
-- **LiFFT** — Lifting Fatigue Failure Tool (low back disorder risk)
-- **DUET** — Distal Upper Extremity Tool (hand/wrist/forearm disorder risk)
-- **Shoulder Tool** — shoulder disorder risk
+- *LiFFT* - Lifting Fatigue Failure Tool (low back disorder risk)
+- *DUET* - Distal Upper Extremity Tool (hand/wrist/forearm disorder risk)
+- *Shoulder Tool* - shoulder disorder risk
 
 All three models apply the same principle: cumulative micro-damage from repeated loading predicts injury risk, just like metal fatigue predicts structural failure. They use S-N curves and the Palmgren-Miner cumulative damage rule adapted to biological tissues.
 
+For detailed notes on the theoretical foundation, formulas, data sources, and confidence assessments, see [docs/research.md](docs/research.md).
+
 ## Install
+
+Requires [uv](https://docs.astral.sh/uv/getting-started/installation/).
+
+You can run fatiguelab directly without installing:
+
+```bash
+uvx fatiguelab --list
+uvx fatiguelab lifft -t 10,0.4,500
+```
+
+Or install it as a tool:
 
 ```bash
 uv tool install fatiguelab          # from PyPI
@@ -40,10 +53,10 @@ fl shoulder --task-type push_pull -t 10,12,200,Cart_pushing
 ## Web app
 
 ```bash
-uv run uvicorn fatiguelab.api:app
+fl serve
 ```
 
-Open http://127.0.0.1:8000 for an interactive UI with scenario comparison.
+Opens an interactive UI at http://127.0.0.1:8000 with scenario comparison.
 
 ## Python API
 
@@ -60,6 +73,14 @@ print(f"Cumulative damage: {result.cumulative_damage:.6f}")
 print(f"Probability: {result.probability:.1%}")
 ```
 
+## Demo script
+
+`scripts/demo.sh` walks through all three models with realistic scenarios and what-if comparisons:
+
+```bash
+bash scripts/demo.sh
+```
+
 ## Development
 
 ```bash
@@ -68,14 +89,6 @@ uv run pytest                       # run tests (95 tests)
 uv run --with ruff ruff check src/  # lint
 uv run --with ty ty check src/      # type check
 ```
-
-## References
-
-- Gallagher et al. (2017) "Development and validation of an easy-to-use risk assessment tool for cumulative low back loading: The Lifting Fatigue Failure Tool (LiFFT)." *Applied Ergonomics*, 63, 142-150.
-- Gallagher et al. (2018) "An Upper Extremity Risk Assessment Tool Based on Material Fatigue Failure Theory: The Distal Upper Extremity Tool (DUET)." *Human Factors*, 60(8), 1146-1162.
-- Bani Hani et al. (2021) "Development and validation of a cumulative exposure shoulder risk assessment tool based on fatigue failure theory." *Ergonomics*, 64(1), 39-54.
-
-See [docs/research.md](docs/research.md) for detailed notes on the theoretical foundation, formulas, and confidence assessments.
 
 ## Origin
 
