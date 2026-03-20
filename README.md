@@ -12,42 +12,43 @@ For detailed notes on the theoretical foundation, formulas, data sources, and co
 
 ## Try it
 
-Install with a single command (installs [uv](https://docs.astral.sh/uv/) automatically if needed):
+To install with a single command, run this in a terminal on Mac or Linux:
 
 ```bash
 curl -LsSf uvx.sh/fatiguelab/install.sh | sh
 ```
 
-Then run the interactive demo:
+Windows users, run this in PowerShell instead:
+
+```powershell
+irm uvx.sh/fatiguelab/install.ps1 | iex
+```
+
+Either method will also install the [uv](https://docs.astral.sh/uv/) package manager if necessary.
+
+Then use `fl` to run the command line tool (CLI) and test the install:
+
+```bash
+fl --help
+```
+
+After that, run a quick demo to get a sense of fatiguelab's capabilities:
 
 ```bash
 fl demo
 ```
 
-Or start the web app at http://127.0.0.1:8000:
+Or start the web app:
 
 ```bash
 fl serve
 ```
 
-## Install for command-line use
-
-If you already have [uv](https://docs.astral.sh/uv/getting-started/installation/), you can run fatiguelab without installing:
-
-```bash
-uvx fatiguelab demo
-uvx fatiguelab lifft -t 10,0.4,500
-```
-
-Or install it as a permanent tool (makes the `fl` shorthand available):
-
-```bash
-uv tool install fatiguelab
-```
+Once that is running, point your browser at http://127.0.0.1:8000 to interact with the web interface and compare scenarios.
 
 ## CLI
 
-Once installed, the command-line tool is `fl`:
+The most commonly used commands are listed below:
 
 ```bash
 # List available models
@@ -75,6 +76,8 @@ fl serve
 
 ## Python API
 
+After installing it from PyPI, you can use models from the fatiguelab package in your own Python projects.
+
 ```python
 from fatiguelab.models import LiFFT, Task
 
@@ -90,6 +93,8 @@ print(f"Probability: {result.probability:.1%}")
 
 ## Development
 
+If you would like to contribute to fatiguelab's development, clone it to your machine as follows:
+
 ```bash
 git clone https://github.com/YOUR_ORG/fatiguelab.git
 cd fatiguelab
@@ -99,8 +104,6 @@ uv run pytest                       # run tests (95 tests)
 uv run --with ruff ruff check src/  # lint
 uv run --with ty ty check src/      # type check
 ```
-
-Requires [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
 ## Origin
 
