@@ -10,37 +10,41 @@ All three models apply the same principle: cumulative micro-damage from repeated
 
 For detailed notes on the theoretical foundation, formulas, data sources, and confidence assessments, see [docs/research.md](docs/research.md).
 
-## Install
+## Try it
 
-Requires [uv](https://docs.astral.sh/uv/getting-started/installation/). Don't have uv? Install it with:
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-Or skip installing uv entirely and use [uvx.sh](https://uvx.sh) to install fatiguelab directly:
+No install required. Run the interactive demo with a single command:
 
 ```bash
 curl -LsSf uvx.sh/fatiguelab/install.sh | sh
+fatiguelab demo
 ```
 
-With uv installed, you can run fatiguelab without installing it:
+Or start the web app:
 
 ```bash
-uvx fatiguelab --list
+fatiguelab serve
+```
+
+This opens an interactive UI at http://127.0.0.1:8000 where you can select models, add tasks, and compare scenarios visually.
+
+## Install for command-line use
+
+If you already have [uv](https://docs.astral.sh/uv/getting-started/installation/), you can run fatiguelab without installing:
+
+```bash
+uvx fatiguelab demo
 uvx fatiguelab lifft -t 10,0.4,500
 ```
 
-Or install it as a tool:
+Or install it as a permanent tool (makes the `fl` shorthand available):
 
 ```bash
-uv tool install fatiguelab          # from PyPI
-uv tool install -e .                # editable, from source
+uv tool install fatiguelab
 ```
 
 ## CLI
 
-The command-line tool is `fl`:
+Once installed, the command-line tool is `fl`:
 
 ```bash
 # List available models
@@ -58,15 +62,13 @@ fl duet -t 4,1350
 # Shoulder: 3lb load, 20in reach, 1500 reps
 fl shoulder -t 3,20,1500,Stocking
 fl shoulder --task-type push_pull -t 10,12,200,Cart_pushing
-```
 
-## Web app
+# Interactive demo
+fl demo
 
-```bash
+# Web app
 fl serve
 ```
-
-Opens an interactive UI at http://127.0.0.1:8000 with scenario comparison.
 
 ## Python API
 
@@ -83,28 +85,19 @@ print(f"Cumulative damage: {result.cumulative_damage:.6f}")
 print(f"Probability: {result.probability:.1%}")
 ```
 
-## Demo
-
-Interactive walkthrough of all three models with realistic scenarios and what-if comparisons:
-
-```bash
-fl demo
-```
-
-Works without installing too:
-
-```bash
-uvx fatiguelab demo
-```
-
 ## Development
 
 ```bash
+git clone https://github.com/YOUR_ORG/fatiguelab.git
+cd fatiguelab
 uv sync                             # install dependencies
+uv tool install -e .                # editable install (fl reflects source changes)
 uv run pytest                       # run tests (95 tests)
 uv run --with ruff ruff check src/  # lint
 uv run --with ty ty check src/      # type check
 ```
+
+Requires [uv](https://docs.astral.sh/uv/getting-started/installation/).
 
 ## Origin
 
