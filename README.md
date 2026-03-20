@@ -12,20 +12,23 @@ For detailed notes on the theoretical foundation, formulas, data sources, and co
 
 ## Try it
 
-No install required. Run the interactive demo with a single command:
+Install with a single command (installs [uv](https://docs.astral.sh/uv/) automatically if needed):
 
 ```bash
 curl -LsSf uvx.sh/fatiguelab/install.sh | sh
-fatiguelab demo
 ```
 
-Or start the web app:
+Then run the interactive demo:
 
 ```bash
-fatiguelab serve
+fl demo
 ```
 
-This opens an interactive UI at http://127.0.0.1:8000 where you can select models, add tasks, and compare scenarios visually.
+Or start the web app at http://127.0.0.1:8000:
+
+```bash
+fl serve
+```
 
 ## Install for command-line use
 
